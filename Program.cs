@@ -17,23 +17,24 @@ namespace Telegram_Bot
         {
             Console.WriteLine("Бот запущен.");
             CancellationTokenSource cts = new CancellationTokenSource();
-            var bot = new TelegramBotClient("7973585300:AAGXOuR9Hb7wRj6Nihqpa2PFygPflf_cuYg");
+            var bot = new TelegramBotClient("7973585300:AAEALQbThNyM5D5NaWmkbqBK4XQfLPHm0J4");
+            await bot.DeleteWebhook();
             var Exception = new Exception();
             var receiverOptions = new ReceiverOptions { AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery } };
             var update = new Update();
 
-            var botMethods = new BotMethods();
+            BotMethods botMethods = new BotMethods();
 
             var me = await bot.GetMe();
             Console.WriteLine($"ID: {me.Id}, Имя: {me.FirstName}");
+            Console.WriteLine("Enter - остановка");
 
             bot.StartReceiving(
-            updateHandler: botMethods.HandleUpdateAsync,
+            botMethods.HandleUpdateAsync,     
             botMethods.HandlePollingErrorAsync,
             receiverOptions,
-            cts.Token
+            cancellationToken: cts.Token
         );
-            Console.WriteLine("Enter - остановка");
             Console.ReadLine();
             cts.Cancel();
             }
