@@ -17,7 +17,7 @@ namespace Telegram_Bot
         {
             Console.WriteLine("Бот запущен.");
             CancellationTokenSource cts = new CancellationTokenSource();
-            var bot = new TelegramBotClient("7973585300:AAEALQbThNyM5D5NaWmkbqBK4XQfLPHm0J4");
+            var bot = new TelegramBotClient("7973585300:AAElSOAOUrxlMMZzUjKS8EW-3sX1JcdaHUc");
             await bot.DeleteWebhook();
             var Exception = new Exception();
             var receiverOptions = new ReceiverOptions { AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery } };

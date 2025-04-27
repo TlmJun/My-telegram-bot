@@ -19,6 +19,7 @@ using System.Web;
 using System.Security.Policy;
 using System.Text.Json;
 using System.Net.Http;
+using System.Reflection.Metadata.Ecma335;
 
 namespace My_telegram_bot.Handlers
 {
@@ -75,8 +76,7 @@ namespace My_telegram_bot.Handlers
                     await bot.SendMessage(msg.Chat, "На каком языке хотите перевод?", replyMarkup: keyboard);
                     break;
                 case "/help":
-                    await bot.SendMessage(chatId, "/translate - перевод сообщений");
-                    await bot.SendMessage(chatId, "/author - автор");
+                    await bot.SendMessage(chatId, $"/translate - перевод сообщений {Environment.NewLine}/author - автор");
                     break;
                 case "/stop":
                     await bot.SendMessage(chatId, "Окей, я больше не буду переводить");
@@ -97,7 +97,7 @@ namespace My_telegram_bot.Handlers
                     }
                     else
                     {
-                        await bot.SendMessage(chatId, "Я не понял. /help - показть список команд");
+                        await bot.SendMessage(chatId, "Я не понял. /help - показать список команд");
                     }
                     break;
             }
@@ -105,51 +105,56 @@ namespace My_telegram_bot.Handlers
 
         ////////      Перевод     //////////////////////////            Перевод         ///////////////////////////////////////////////////    Перевод  ////////////////////////
 
-        public async Task ChangeTranslate(ITelegramBotClient bot, CallbackQuery callback, Update update)
+        public async Task ChangeTranslate(ITelegramBotClient bot, CallbackQuery callback, Update update)                   // обработка кнопок
         {
 
             var ChatId = callback.Message.Chat.Id;     //Id с привязаной кнопки
-            var User = callback.Message;
             var msg = update.Message;
+            var User = msg.From!.FirstName;
+
+            await bot.SendMessage(ChatId, $"Введите слово и я его переведу на {callback.Data} и наоборот, /stop - остановка");
 
             switch (callback.Data)
             {
                 case "Английский":
                     await bot.AnswerCallbackQuery(callback.Id);
-                    Console.WriteLine($"{callback.From.Username} выбрал Английский");
-                    await bot.SendMessage(ChatId, "Введите слово и я его переведу на английский");
+                    Console.WriteLine($"{User} выбрал Английский");
                     LangChange[ChatId] = "en";
                     break;
                 case "Китайский":
                     await bot.AnswerCallbackQuery(callback.Id);
-                    Console.WriteLine($"{callback.From.Username} выбрал Китайский");
-                    await bot.SendMessage(ChatId, "Введите слово и я его переведу на китайский");
+                    Console.WriteLine($"{User} выбрал Китайский");
                     LangChange[ChatId] = "zh";
                     break;
             }
         }
-        public async Task Translater(string lang, string message, ITelegramBotClient bot, ChatId chatId)
+        public async Task Translater(string lang, string message, ITelegramBotClient bot, ChatId chatId)                  // перевод
         {
             try
             {
-                var Translation = await GetTranslation(lang, message);
-                switch (lang) {case "en":lang = "Английский"; break; case "zh": lang = "китайский"; break; }
-                await bot.SendMessage(chatId, $"{message} на {lang}: {Translation}");
+                var langDirection = lang == "en" ? "ru-en" : "ru-zh";
+                var Translation = await GetTranslation(lang, message, langDirection);
+                await bot.SendMessage(chatId, $"Перевод {message}: {Translation}");
             }
-            catch
+            catch(Exception ex)
             {
-                await bot.SendMessage(chatId, "Извините я не нашел перевод");
+                try
+                {
+                    await ReturnLang(lang, message, bot, chatId);
+                }
+                catch
+                {
+                    await bot.SendMessage(chatId, "Извините я не нашел перевод");
+                }
             }
         }
-        private async Task<string> GetTranslation(string lang, string message)
+        private async Task<string> GetTranslation(string lang, string message, string langDirection)                                            // получение JSON списка
         {
-            var langDirection = lang == "en" ? "ru-en" : "ru-zh";
             var url = $"https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key={ApiKey}&lang={langDirection}&text={Uri.EscapeDataString(message)}";
-
-            var response = await client.GetStringAsync(url);
-            return ParseTranslation(response);
+            var json = await client.GetStringAsync(url);
+            return ParseTranslation(json);
         }
-        private string ParseTranslation(string json)
+        private string ParseTranslation(string json)                                                                     // расшифровка JSON списка
         {
             using var doc = JsonDocument.Parse(json);
             var translations = doc.RootElement
@@ -157,6 +162,12 @@ namespace My_telegram_bot.Handlers
                 .GetProperty("tr");
 
             return translations[0].GetProperty("text").GetString();
+        }
+        async Task ReturnLang(string lang, string message, ITelegramBotClient bot, ChatId chatId)                       // если не получилось перевести он переводит наоборот
+        {
+            var langDirection = lang == "en" ? "en-ru" : "zh-en";
+            var Translation = await GetTranslation(lang, message, langDirection);
+            await bot.SendMessage(chatId, $"{message} на {lang}: {Translation}");
         }
 
 
