@@ -33,15 +33,16 @@ namespace My_telegram_bot.Handlers
         {
             try
             {
-                
                 if (update.Message is { } message)
                 {
+                    var firstName = update.Message!.From!.FirstName;
                     if (message == null) return;
                     await GetUpdate(bot, message, update);
                 }
                 else { if (update.CallbackQuery is { } messagee)
                     {
-                        await ChangeTranslate(bot, messagee, update);
+                        var firstName = update.CallbackQuery.From?.FirstName;
+                        await ChangeTranslate(bot, messagee, update, firstName!);
                     }
                 }
             }
@@ -105,12 +106,11 @@ namespace My_telegram_bot.Handlers
 
         ////////      Перевод     //////////////////////////            Перевод         ///////////////////////////////////////////////////    Перевод  ////////////////////////
 
-        public async Task ChangeTranslate(ITelegramBotClient bot, CallbackQuery callback, Update update)                   // обработка кнопок
+        public async Task ChangeTranslate(ITelegramBotClient bot, CallbackQuery callback, Update update, string firstName)                   // обработка кнопок
         {
 
             var ChatId = callback.Message.Chat.Id;     //Id с привязаной кнопки
             var msg = update.Message;
-            var User = msg.From!.FirstName;
 
             await bot.SendMessage(ChatId, $"Введите слово и я его переведу на {callback.Data} и наоборот, /stop - остановка");
 
@@ -118,12 +118,12 @@ namespace My_telegram_bot.Handlers
             {
                 case "Английский":
                     await bot.AnswerCallbackQuery(callback.Id);
-                    Console.WriteLine($"{User} выбрал Английский");
+                    Console.WriteLine($"{firstName} выбрал Английский");
                     LangChange[ChatId] = "en";
                     break;
                 case "Китайский":
                     await bot.AnswerCallbackQuery(callback.Id);
-                    Console.WriteLine($"{User} выбрал Китайский");
+                    Console.WriteLine($"{firstName} выбрал Китайский");
                     LangChange[ChatId] = "zh";
                     break;
             }
